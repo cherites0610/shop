@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/view/HomeView.vue'
-import App from '@/App.vue'
 import CommodityView from '@/view/CommodityView.vue'
+import LineLogin from '@/view/LineLogin.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,6 +16,11 @@ const router = createRouter({
       name: 'commodity',
       component: CommodityView,
     },
+    {
+      path:'/LineLogin',
+      name:"LineLogin",
+      component: LineLogin
+    }
   ],
 })
 

@@ -44,10 +44,13 @@ import { useCommodityStore } from '@/stores/commodityStore';
 import { onMounted, ref, watch } from 'vue';
 import type Commodity from '@/modals/Commodity';
 import Error from '@/components/Error.vue';
+import { useUserStore } from '@/stores/userStore';
+import { requests } from '@/axios';
 
 const commodityStore = useCommodityStore();
 const route = useRoute();
 const errorMessage = ref<string | null>(null);
+const userStore = useUserStore()
 
 const commodity = ref<Commodity | undefined>(undefined);
 const selectedItem = ref<{ id: number, specification: { [key: string]: string }, number: number }>({
@@ -58,6 +61,11 @@ const selectedItem = ref<{ id: number, specification: { [key: string]: string },
 
 const buyHandler = () => {
     console.log("Buy!");
+    console.log(userStore.user?.userId);
+    requests.post("/sendMessage",{"text":"Test","userID":userStore.user?.userId},{
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    
     
 }
 

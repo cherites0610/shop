@@ -11,12 +11,18 @@
                 <li>
                     <RouterLink to="/">規格管理</RouterLink>
                 </li>
+                <li>
+                    <RouterLink to="/">{{userStore.user?.displayName}}-您好</RouterLink>
+                </li>
             </ul>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { useUserStore } from '@/stores/userStore';
+
+const userStore = useUserStore()
 
 </script>
 

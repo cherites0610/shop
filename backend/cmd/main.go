@@ -1,90 +1,48 @@
 package main
 
 import (
-	"bots/shop/models"
+	"bots/shop/handler"
+	"fmt"
 	"log"
-	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	router := gin.Default()
+	err := godotenv.Load(filepath.Join("..", ".env"))
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	// 配置 CORS
+	// 從 .env 讀取變數
+	token := os.Getenv("LINE_ACCESS_TOKEN")
+	clientID := os.Getenv("LINE_client_id")
+	clientSecret := os.Getenv("LINE_client_secret")
+
+	// 確保變數不為空
+	if token == "" || clientID == "" || clientSecret == "" {
+		log.Fatal("❌ Missing LINE_client_secret or LINE_client_id or LINE_ACCESS_TOKEN in .env")
+	}
+
+	fmt.Println(token)
+
+	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8080"},            // 允许的源
+		AllowOrigins:     []string{"*"},                                // 允许的源
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},     // 允许的方法
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"}, // 允许的头
 		AllowCredentials: true,
 	}))
+	router.GET("/commodities", handler.GetCommoditiesHandler)
+	router.GET("/commodities/:id", handler.GetCommoditieyByIDHandler)
+	router.GET("/lineLogin", handler.LineLoginURLHandler)
+	router.POST("/LineAcess", handler.LineAuthHandler)
+	router.POST("/sendMessage", handler.SendMessage)
 
-	// 初始化数据库
-	db, err := models.SetupDatabase()
-	if err != nil {
-		log.Fatal("Database connection failed:", err)
-	}
-
-	// 获取商品列表
-	router.GET("/commodities", func(c *gin.Context) {
-		var commodities []models.Commodity
-		db.Find(&commodities)
-		c.JSON(http.StatusOK, commodities)
-	})
-
-	// 获取单个商品
-	router.GET("/commodities/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		var commodity models.Commodity
-		if err := db.Where("id = ?", id).First(&commodity).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Commodity not found"})
-			return
-		}
-		c.JSON(http.StatusOK, commodity)
-	})
-
-	// 创建新商品
-	router.POST("/commodities", func(c *gin.Context) {
-		var commodity models.Commodity
-		if err := c.ShouldBindJSON(&commodity); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if err := db.Create(&commodity).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusCreated, commodity)
-	})
-
-	// 更新商品
-	router.PUT("/commodities/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		var commodity models.Commodity
-		if err := db.Where("id = ?", id).First(&commodity).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Commodity not found"})
-			return
-		}
-
-		if err := c.ShouldBindJSON(&commodity); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		db.Save(&commodity)
-		c.JSON(http.StatusOK, commodity)
-	})
-
-	// 删除商品
-	router.DELETE("/commodities/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		if err := db.Where("id = ?", id).Delete(&models.Commodity{}).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Commodity not found"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Commodity deleted"})
-	})
-
-	// 启动服务器
 	router.Run(":8081")
+
 }
