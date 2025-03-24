@@ -5,11 +5,20 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	router := gin.Default()
+
+	// 配置 CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8080"},            // 允许的源
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},     // 允许的方法
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"}, // 允许的头
+		AllowCredentials: true,
+	}))
 
 	// 初始化数据库
 	db, err := models.SetupDatabase()
