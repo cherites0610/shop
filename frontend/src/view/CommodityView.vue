@@ -60,13 +60,21 @@ const selectedItem = ref<{ id: number, specification: { [key: string]: string },
 });
 
 const buyHandler = () => {
-    console.log("Buy!");
-    console.log(userStore.user?.userId);
-    requests.post("/sendMessage",{"text":"Test","userID":userStore.user?.userId},{
+    let specificationText = '';
+    const keys = Object.keys(selectedItem.value.specification);
+    keys.forEach((item, index) => {
+        // 判断是否是最后一个元素
+        if (index === keys.length - 1) {
+            specificationText += `${item}: ${selectedItem.value.specification[item]}`;
+        } else {
+            specificationText += `${item}: ${selectedItem.value.specification[item]}, `;
+        }
+    });
+
+    const message = `您購買了${commodity.value?.name}，規格為:${specificationText}，購買數量為:${selectedItem.value.number}`
+    requests.post("/sendMessage",{"text":message,"userID":userStore.user?.userId},{
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
-    
-    
 }
 
 const getCommodity = async () => {
