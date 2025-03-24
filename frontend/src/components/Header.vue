@@ -12,7 +12,12 @@
                     <RouterLink to="/">規格管理</RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/">{{userStore.user?.displayName}}-您好</RouterLink>
+                    <details>
+                        <summary>{{ userStore.user?.displayName }}</summary>
+                        <ul class="bg-base-100 rounded-t-none p-2">
+                            <li><button @click="logoutHandler">登出</button></li>
+                        </ul>
+                    </details>
                 </li>
             </ul>
         </div>
@@ -24,6 +29,10 @@ import { useUserStore } from '@/stores/userStore';
 
 const userStore = useUserStore()
 
+const logoutHandler = () => {
+    localStorage.removeItem("lineToken")
+    window.location.reload()
+}
 </script>
 
 <style scoped></style>

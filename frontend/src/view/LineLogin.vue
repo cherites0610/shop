@@ -17,7 +17,6 @@ const loading = ref<boolean>(true);
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
 const state = urlParams.get('state');
-let line
 
 if (code) {
     exchangeLineToken(code);
@@ -34,7 +33,7 @@ async function exchangeLineToken(code: string) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
 
-    line = JSON.parse(result.data.response)
+    let line = JSON.parse(result.data.response)
     if (line.access_token) {
         window.localStorage.setItem("lineToken", line.access_token)
         window.location.href="/"

@@ -27,9 +27,10 @@ func LineLoginURLHandler(c *gin.Context) {
 		"&client_id=%s"+
 		"&redirect_uri=%s"+
 		"&state=%s"+
+		"&bot_prompt=%s"+
 		"&scope=profile%%20openid"+
 		"&nonce=%s",
-		clientID, encodedRedirectURI, state, nonce)
+		clientID, encodedRedirectURI, state, "normal", nonce)
 
 	c.IndentedJSON(http.StatusOK, gin.H{"url": authURL})
 }
