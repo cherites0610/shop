@@ -2,7 +2,6 @@ package main
 
 import (
 	"bots/shop/handler"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
+func init() {
 	err := godotenv.Load(filepath.Join("..", ".env"))
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -27,9 +26,9 @@ func main() {
 	if token == "" || clientID == "" || clientSecret == "" {
 		log.Fatal("❌ Missing LINE_client_secret or LINE_client_id or LINE_ACCESS_TOKEN in .env")
 	}
+}
 
-	fmt.Println(token)
-
+func main() {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},                                // 允许的源
