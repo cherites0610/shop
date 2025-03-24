@@ -15,8 +15,6 @@ const commodityStore = useCommodityStore();
 onMounted( async () => {
     await commodityStore.getCommodities()
 });
-
-const commodities = commodityStore.commodities;
 </script>
 
 <style scoped>

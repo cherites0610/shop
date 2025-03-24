@@ -21,15 +21,14 @@ export const useCommodityStore = defineStore('commodity', () => {
   // 获取单个商品
   const getCommodityById = async (id: number) => {
     try {
-      const response = await requests.get(`/commodities/${id}`);
-      return response.data;
+      return commodities.value.find(item => item.id===id)
     } catch (error) {
       console.error(`Error fetching commodity with id ${id}:`, error);
     }
   };
 
   // 创建商品
-  const createCommodity = async (commodity: any) => {
+  const createCommodity = async (commodity: Commodity) => {
     try {
       const response = await requests.post('/commodities', commodity);
       commodities.value.push(response.data);
@@ -39,7 +38,7 @@ export const useCommodityStore = defineStore('commodity', () => {
   };
 
   // 更新商品
-  const updateCommodity = async (id: number, commodity: any) => {
+  const updateCommodity = async (id: number, commodity: Commodity) => {
     try {
       await requests.put(`/commodities/${id}`, commodity);
       const index = commodities.value.findIndex((c) => c.id === id);
