@@ -2,10 +2,23 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/go-sql-driver/mysql" // MySQL 驅動
 )
+
+// 初始化數據庫連接
+func SetupDatabase() (*sql.DB, error) {
+	dsn := "root:123456@tcp(127.0.0.1:3306)/bots?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
 
 // 自定義 JSON 結構
 type SpecificationResponse struct {
@@ -20,20 +33,6 @@ type CommodityResponse struct {
 	Name           string                  `json:"name"`
 	Spec           map[string][]string     `json:"spec"`
 	Specifications []SpecificationResponse `json:"specifications"`
-}
-
-// 初始化數據庫連接
-func SetupDatabase() (*sql.DB, error) {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/bots?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, err
-	}
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
 }
 
 // 查詢所有商品及其規格
@@ -175,34 +174,5 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 		response = append(response, currentCommodity)
 	}
 
-	// 調試輸出（可選）
-	for _, r := range response {
-		fmt.Printf("ID: %d, Name: %s, Spec: %v, Specs Count: %d\n", r.ID, r.Name, r.Spec, len(r.Specifications))
-		for _, s := range r.Specifications {
-			fmt.Printf("  CommoditySpecID: %d, SpecValue: %v, Stock: %d, Price: %.2f\n", s.CommoditySpecID, s.SpecValue, s.Stock, s.Price)
-		}
-	}
-
 	return response, nil
-}
-
-// 使用範例
-func main() {
-	db, err := SetupDatabase()
-	if err != nil {
-		fmt.Println("Database connection failed:", err)
-		return
-	}
-	defer db.Close()
-
-	commodities, err := GetAllCommodities(db)
-	if err != nil {
-		fmt.Println("Query failed:", err)
-		return
-	}
-
-	// 這裡可以將 commodities 轉為 JSON 輸出，例如使用 encoding/json
-	for _, c := range commodities {
-		fmt.Printf("%+v\n", c)
-	}
 }

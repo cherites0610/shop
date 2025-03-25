@@ -6,9 +6,13 @@
         <div class="card-body">
             <div class="flex flex-wrap navbar-center justify-between">
                 <h2 class=" text-3xl font-bold">{{ commodity.name }}</h2>
-                <button @click="router.push(`/commodity/${commodity.id}`)" class="btn btn-primary">
-                    Check
-                </button>
+                <div class="flex gap-2">
+                    <button @click="router.push(`/specification/${commodity.id}`)" class="btn">管理</button>
+                    <button @click="router.push(`/commodity/${commodity.id}`)" class="btn btn-primary">
+                        查看
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>

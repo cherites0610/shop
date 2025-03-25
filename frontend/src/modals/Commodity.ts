@@ -1,5 +1,6 @@
 // 規格的實體類
 export interface Specification {
+  commodity_spec_id: number;
   spec_value: string[];  // 規格值，例如 ["綠色", "X"]
   stock: number;         // 庫存數量
   price: number;         // 價格
