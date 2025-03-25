@@ -9,15 +9,16 @@ import (
 
 // 自定義 JSON 結構
 type SpecificationResponse struct {
-	SpecValue []string `json:"spec_value"`
-	Stock     int      `json:"stock"`
-	Price     float64  `json:"price"`
+	CommoditySpecID int      `json:"commodity_spec_id"`
+	SpecValue       []string `json:"spec_value"`
+	Stock           int      `json:"stock"`
+	Price           float64  `json:"price"`
 }
 
 type CommodityResponse struct {
 	ID             int                     `json:"id"`
 	Name           string                  `json:"name"`
-	Spec           map[string][]string     `json:"spec"` // 修改為 map 結構
+	Spec           map[string][]string     `json:"spec"`
 	Specifications []SpecificationResponse `json:"specifications"`
 }
 
@@ -35,9 +36,9 @@ func SetupDatabase() (*sql.DB, error) {
 	return db, nil
 }
 
-// 使用原生 SQL 查詢並封裝數據
+// 查詢所有商品及其規格
 func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
-	// SQL 查詢：JOIN 四個表並按 commodity_id 排序
+	// SQL 查詢
 	query := `
 		SELECT 
 			c.commodity_id,
@@ -64,7 +65,7 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 	}
 	defer rows.Close()
 
-	// 儲存結果的臨時結構
+	// 臨時結構儲存查詢結果
 	type tempResult struct {
 		CommodityID     int
 		CommodityName   string
@@ -111,7 +112,6 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 		// 如果是新的 commodity_id，開始新的 CommodityResponse
 		if i == 0 || r.CommodityID != currentCommodity.ID {
 			if i > 0 { // 添加前一個 commodity 到 response
-				// 將 specMap 轉換為 spec 字段
 				currentCommodity.Spec = make(map[string][]string)
 				for key, values := range specMap {
 					uniqueValues := []string{}
@@ -122,8 +122,8 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 				}
 				currentCommodity.Specifications = specs
 				response = append(response, currentCommodity)
-				specs = []SpecificationResponse{}          // 重置規格列表
-				specMap = make(map[string]map[string]bool) // 重置 specMap
+				specs = []SpecificationResponse{}
+				specMap = make(map[string]map[string]bool)
 			}
 			currentCommodity = CommodityResponse{
 				ID:   r.CommodityID,
@@ -154,9 +154,10 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 
 		// 添加規格到當前 commodity
 		specs = append(specs, SpecificationResponse{
-			SpecValue: specValues,
-			Stock:     r.Stock,
-			Price:     r.Price,
+			CommoditySpecID: r.CommoditySpecID,
+			SpecValue:       specValues,
+			Stock:           r.Stock,
+			Price:           r.Price,
 		})
 	}
 
@@ -178,9 +179,30 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 	for _, r := range response {
 		fmt.Printf("ID: %d, Name: %s, Spec: %v, Specs Count: %d\n", r.ID, r.Name, r.Spec, len(r.Specifications))
 		for _, s := range r.Specifications {
-			fmt.Printf("  SpecValue: %v, Stock: %d, Price: %.2f\n", s.SpecValue, s.Stock, s.Price)
+			fmt.Printf("  CommoditySpecID: %d, SpecValue: %v, Stock: %d, Price: %.2f\n", s.CommoditySpecID, s.SpecValue, s.Stock, s.Price)
 		}
 	}
 
 	return response, nil
+}
+
+// 使用範例
+func main() {
+	db, err := SetupDatabase()
+	if err != nil {
+		fmt.Println("Database connection failed:", err)
+		return
+	}
+	defer db.Close()
+
+	commodities, err := GetAllCommodities(db)
+	if err != nil {
+		fmt.Println("Query failed:", err)
+		return
+	}
+
+	// 這裡可以將 commodities 轉為 JSON 輸出，例如使用 encoding/json
+	for _, c := range commodities {
+		fmt.Printf("%+v\n", c)
+	}
 }

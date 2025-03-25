@@ -23,7 +23,7 @@
 
                 <div class="join">
                     <button @click="num--" class="join-item btn">-1</button>
-                    <input type="number" v-model="num" class="join-item" />
+                    <input type="number" v-model="num" class="join-item text-xl text-center" />
                     <button @click="num++" class="join-item btn">+1</button>
                     <span>庫存: {{ selectedItem.stock }}</span>
                 </div>
