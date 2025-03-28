@@ -4,7 +4,7 @@
             <span class=" text-center" v-for="name in spec_name">{{ name }}</span>
         </div>
         <div class="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 items-center justify-items-center"
-            v-for="combo in combinations" :key="combo.join('-')">
+            v-for="combo in combinations" :key="getIndex(combo)">
             <span v-for="value in combo" :key="value" class="text-center p-2">{{ value }}</span>
             <input type="number" class="text-center p-2 border rounded w-20" v-model="getInf(getIndex(combo)).price">
             <input type="number" class="text-center p-2 border rounded w-20" v-model="getInf(getIndex(combo)).stock">
@@ -67,10 +67,12 @@ watch(
             const matchedItem = getInf(index)
             if (index > 0 && i < newValCombo.length && matchedItem) {
                 matchedItem.spec_value = newValCombo[i];
-
             }
         });
         oldVal = JSON.parse(JSON.stringify(newVal));
+        spec_name.value = Object.keys(newVal); // 同步更新 spec_name
+        spec_name.value.push("價格");
+        spec_name.value.push("庫存");
     },
     { deep: true }
 );

@@ -18,7 +18,8 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['38c5-118-169-224-54.ngrok-free.app'],
-    port:8080
+    port:8080,
+    host: "0.0.0.0",
+    allowedHosts: ["pt-sms.org","www.pt-sms.org"],
   }
 })

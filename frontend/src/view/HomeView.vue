@@ -12,9 +12,6 @@ import { useCommodityStore } from '@/stores/commodityStore';
 
 const commodityStore = useCommodityStore();
 
-onMounted( async () => {
-    await commodityStore.getCommodities()
-});
 </script>
 
 <style scoped>

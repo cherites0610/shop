@@ -34,6 +34,10 @@ async function exchangeLineToken(code: string) {
     })
 
     let line = JSON.parse(result.data.response)
+    console.log(code);
+    
+    console.log(line);
+    
     if (line.access_token) {
         window.localStorage.setItem("lineToken", line.access_token)
         window.location.href="/"

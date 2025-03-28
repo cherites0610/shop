@@ -2,13 +2,13 @@ package models
 
 import (
 	"database/sql"
-
+	"fmt"
 	_ "github.com/go-sql-driver/mysql" // MySQL 驅動
 )
 
 // 初始化數據庫連接
 func SetupDatabase() (*sql.DB, error) {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/bots?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "bots:123456@tcp(43.163.2.11:3306)/bots?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
@@ -175,4 +175,115 @@ func GetAllCommodities(db *sql.DB) ([]CommodityResponse, error) {
 	}
 
 	return response, nil
+}
+
+// CommoditySpecUpdate 定義更新所需的參數結構
+type CommoditySpecUpdate struct {
+	CommodityID     int
+	CommoditySpecID int
+	NewStock        int
+	NewPrice        float64
+	NewSpecValue1   string
+	NewSpecValue2   string
+	SpecTypeName1   string // 第一個規格類型名稱 (如 "Size")
+	SpecTypeName2   string // 第二個規格類型名稱 (如 "Color")
+}
+
+// UpdateCommoditySpec 更新商品規格的函數
+func UpdateCommoditySpec(db *sql.DB, update CommoditySpecUpdate) error {
+	// 開始事務
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("開始事務失敗: %v", err)
+	}
+
+	// 確保事務結束時提交或回滾
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+
+	// 1. 插入或獲取第一個 spec_value
+	var specValue1ID int
+	err = tx.QueryRow(`
+		INSERT INTO specification_values (spec_type_id, spec_value)
+		SELECT spec_type_id, ? FROM specification_types
+		WHERE commodity_id = ? AND spec_type_name = ?
+		ON DUPLICATE KEY UPDATE spec_value = spec_value;
+		SELECT LAST_INSERT_ID();
+	`, update.NewSpecValue1, update.CommodityID, update.SpecTypeName1).Scan(&specValue1ID)
+	if err != nil {
+		return fmt.Errorf("插入或獲取 spec_value_1 失敗: %v", err)
+	}
+
+	// 如果 LAST_INSERT_ID() 返回 0，查詢現有 ID
+	if specValue1ID == 0 {
+		err = tx.QueryRow(`
+			SELECT spec_value_id FROM specification_values
+			WHERE spec_value = ? AND spec_type_id IN (
+				SELECT spec_type_id FROM specification_types
+				WHERE commodity_id = ? AND spec_type_name = ?
+			)
+		`, update.NewSpecValue1, update.CommodityID, update.SpecTypeName1).Scan(&specValue1ID)
+		if err != nil {
+			return fmt.Errorf("查詢 spec_value_1_id 失敗: %v", err)
+		}
+	}
+
+	// 2. 插入或獲取第二個 spec_value
+	var specValue2ID int
+	err = tx.QueryRow(`
+		INSERT INTO specification_values (spec_type_id, spec_value)
+		SELECT spec_type_id, ? FROM specification_types
+		WHERE commodity_id = ? AND spec_type_name = ?
+		ON DUPLICATE KEY UPDATE spec_value = spec_value;
+		SELECT LAST_INSERT_ID();
+	`, update.NewSpecValue2, update.CommodityID, update.SpecTypeName2).Scan(&specValue2ID)
+	if err != nil {
+		return fmt.Errorf("插入或獲取 spec_value_2 失敗: %v", err)
+	}
+
+	// 如果 LAST_INSERT_ID() 返回 0，查詢現有 ID
+	if specValue2ID == 0 {
+		err = tx.QueryRow(`
+			SELECT spec_value_id FROM specification_values
+			WHERE spec_value = ? AND spec_type_id IN (
+				SELECT spec_type_id FROM specification_types
+				WHERE commodity_id = ? AND spec_type_name = ?
+			)
+		`, update.NewSpecValue2, update.CommodityID, update.SpecTypeName2).Scan(&specValue2ID)
+		if err != nil {
+			return fmt.Errorf("查詢 spec_value_2_id 失敗: %v", err)
+		}
+	}
+
+	// 3. 刪除舊的 commodity_specifications 記錄
+	_, err = tx.Exec(`
+		DELETE FROM commodity_specifications
+		WHERE commodity_spec_id = ? AND commodity_id = ?
+	`, update.CommoditySpecID, update.CommodityID)
+	if err != nil {
+		return fmt.Errorf("刪除舊記錄失敗: %v", err)
+	}
+
+	// 4. 插入新的 commodity_specifications 記錄
+	_, err = tx.Exec(`
+		INSERT INTO commodity_specifications (
+			commodity_spec_id,
+			commodity_id,
+			spec_value_1_id,
+			spec_value_2_id,
+			stock,
+			price
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`, update.CommoditySpecID, update.CommodityID, specValue1ID, specValue2ID, update.NewStock, update.NewPrice)
+	if err != nil {
+		return fmt.Errorf("插入新記錄失敗: %v", err)
+	}
+
+	// 事務將在 defer 中提交
+	return nil
 }

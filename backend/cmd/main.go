@@ -43,5 +43,4 @@ func main() {
 	router.POST("/sendMessage", handler.SendMessage)
 
 	router.Run(":8081")
-
 }

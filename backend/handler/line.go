@@ -13,7 +13,7 @@ import (
 )
 
 func LineLoginURLHandler(c *gin.Context) {
-	redirectURI := "https://38c5-118-169-224-54.ngrok-free.app/LineLogin"
+	redirectURI := "https://pt-sms.org/LineLogin"
 	state := "kirmcczgswokt024kqye0nx19n30o8nv"
 	nonce := "rxz3j4i672bgqtxyu999hu4wkjc28de1"
 	clientID := os.Getenv("LINE_client_id")
@@ -111,7 +111,7 @@ func LineAuthHandler(ctx *gin.Context) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", "https://38c5-118-169-224-54.ngrok-free.app/LineLogin")
+	data.Set("redirect_uri", "https://pt-sms.org/LineLogin")
 	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
 
