@@ -16,20 +16,20 @@ const userStore = useUserStore();
 const commodityStore = useCommodityStore();
 
 onBeforeMount(async () => {
-  // const token = window.localStorage.getItem("lineToken");
+  const token = window.localStorage.getItem("lineToken");
   await commodityStore.getCommodities()
 
-  // const getLineUrl = async (): Promise<string> => {
-  //   const lineUrl = await requests.get("/lineLogin")
-  //   return lineUrl.data.url
-  // }
-  
-  // try {
-  //   if (!token) throw new Error("Token not found");
-  //   await userStore.getUserProfile(token);
-  // } catch (err: any) {
-  //   window.location.href = await getLineUrl();
-  // }
+  const getLineUrl = async (): Promise<string> => {
+    const lineUrl = await requests.get("/lineLogin")
+    return lineUrl.data.url
+  }
+
+  try {
+    if (!token) throw new Error("Token not found");
+    await userStore.getUserProfile(token);
+  } catch (err: any) {
+    window.location.href = await getLineUrl();
+  }
 
 
 

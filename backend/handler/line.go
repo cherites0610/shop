@@ -13,7 +13,8 @@ import (
 )
 
 func LineLoginURLHandler(c *gin.Context) {
-	redirectURI := "https://pt-sms.org/LineLogin"
+	redirectURI := os.Getenv("DOMAIN") + "LineLogin"
+	fmt.Println(redirectURI)
 	state := "kirmcczgswokt024kqye0nx19n30o8nv"
 	nonce := "rxz3j4i672bgqtxyu999hu4wkjc28de1"
 	clientID := os.Getenv("LINE_client_id")
@@ -51,6 +52,8 @@ func SendMessage(ctx *gin.Context) {
 	text := ctx.PostForm("text")
 	userID := ctx.PostForm("userID")
 
+	fmt.Println(text)
+	fmt.Println(userID)
 	// 建立訊息結構
 	data := LineMessage{
 		To: userID,
@@ -111,7 +114,7 @@ func LineAuthHandler(ctx *gin.Context) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", "https://pt-sms.org/LineLogin")
+	data.Set("redirect_uri", os.Getenv("DOMAIN")+"LineLogin")
 	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
 

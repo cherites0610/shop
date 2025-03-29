@@ -1,6 +1,6 @@
 import axios from "axios";
 
 export const requests = axios.create({
-    baseURL: 'https://api.pt-sms.org/',
+    baseURL: 'http://localhost:8081',
     timeout: 1000,
   });

@@ -2,36 +2,30 @@ package handler
 
 import (
 	"bots/shop/models"
-	"database/sql"
-	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-var db *sql.DB
-
-func init() {
-	var err error
-	// 初始化数据库
-	db, err = models.SetupDatabase()
-	if err != nil {
-		log.Fatal("Database connection failed:", err)
-	}
-}
-
 func GetCommoditiesHandler(c *gin.Context) {
-	var commodities []models.CommodityResponse
-	commodities, _ = models.GetAllCommodities(db)
+	var commodities []models.CommodityListResponse
+	commodities, _ = models.GetAllCommodity()
 	c.JSON(http.StatusOK, commodities)
 }
 
 func GetCommoditieyByIDHandler(c *gin.Context) {
-	// id := c.Param("id")
-	// var commodity models
-	// if err := db.Where("id = ?", id).First(&commodity).Error; err != nil {
-	// 	c.JSON(http.StatusNotFound, gin.H{"message": "Commodity not found"})
-	// 	return
-	// }
-	c.JSON(http.StatusOK, "commodity")
+	id := c.Param("id")
+	uintID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
+
+	commodity, err := models.GetCommodityDetail(uint(uintID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve commodity"})
+		return
+	}
+	c.JSON(http.StatusOK, commodity)
 }

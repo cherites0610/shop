@@ -1,5 +1,5 @@
 import { requests } from "@/axios";
-import type User from "@/modals/User";
+import type User from "@/models/User";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
