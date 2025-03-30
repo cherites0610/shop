@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bots/shop/handler"
+	"bots/shop/routes"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,18 +29,18 @@ func init() {
 }
 
 func main() {
+
 	router := gin.Default()
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},                                // 允许的源
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},     // 允许的方法
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"}, // 允许的头
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
 	}))
-	router.GET("/commodities", handler.GetCommoditiesHandler)
-	router.GET("/commodities/:id", handler.GetCommoditieyByIDHandler)
-	router.GET("/lineLogin", handler.LineLoginURLHandler)
-	router.POST("/LineAcess", handler.LineAuthHandler)
-	router.POST("/sendMessage", handler.SendMessage)
+
+	routes.LineRoutes(router)
+	routes.CommodityRoutes(router)
 
 	router.Run(":8081")
 }

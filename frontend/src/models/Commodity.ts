@@ -19,13 +19,13 @@ export interface CommodityDetailResponse {
 }
 
 export interface SpecTypeResponse {
-  spec_type_id: number;
+  spec_type_id?: number;
   spec_type_name: string;
   specification_values: SpecValueResponse[];
 }
 
 export interface SpecValueResponse {
-  spec_value_id: number;
+  spec_value_id?: number;
   spec_value: string;
 }
 

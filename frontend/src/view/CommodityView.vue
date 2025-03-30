@@ -14,14 +14,8 @@
           <span>{{ specType.spec_type_name }}:</span>
           <div v-for="value in specType.specification_values" :key="value.spec_value_id">
             <label>
-              <input
-                type="radio"
-                :name="specType.spec_type_name"
-                class="radio"
-                :value="value.spec_value_id"
-                v-model="selectedSpecValues[index]"
-                @change="updateSelectedItem"
-              />
+              <input type="radio" :name="specType.spec_type_name" class="radio" :value="value.spec_value_id"
+                v-model="selectedSpecValues[index]" @change="updateSelectedItem" />
               {{ value.spec_value }}
             </label>
           </div>
@@ -65,12 +59,16 @@ const selectedItem = ref<CommoditySpecResponse | null>(null);
 const num = ref(1);
 
 onMounted(async () => {
-   const id = Number(route.params.id);
-   if (isNaN(id)) {
-     console.error('Invalid ID');
-     return;
-   }
-   commodity.value = await commodityStore.getCommodityById(id);
+  await getCommodity()
+});
+
+const getCommodity = async () => {
+  const id = Number(route.params.id);
+  if (isNaN(id)) {
+    console.error('Invalid ID');
+    return;
+  }
+  commodity.value = await commodityStore.getCommodityById(id);
   if (commodity.value) {
     // 初始化選擇的規格值（預設選第一個）
     selectedSpecValues.value = commodity.value.specification_types.map(
@@ -78,7 +76,7 @@ onMounted(async () => {
     );
     updateSelectedItem(); // 初始化 selectedItem
   }
-});
+}
 
 // 更新已選擇的規格項
 function updateSelectedItem() {
@@ -98,13 +96,20 @@ function updateSelectedItem() {
 }
 
 // 購買處理
-function buyHandler() {
+const buyHandler = async () => {
   if (!selectedItem.value || num.value <= 0) {
     alert('請選擇商品規格並設置有效數量！');
     return;
   }
+  const id = Number(route.params.id);
+  await requests.post("/commodities/buy", {
+    "commodity_id": id,
+    "spec_type_id": selectedItem.value.commodity_spec_id,
+    "user_id": userStore.user?.userId,
+    "num": num.value
+  })
+  alert("購買成功")
+  await getCommodity()
 
-  const message = `購買商品: ${commodity.value?.commodity_name}, 規格: ${selectedItem.value.spec_value_1} ${selectedItem.value.spec_value_2??""}, 數量: ${num.value}, 總價格為: ${num.value*selectedItem.value.price}`
-  requests.post("/sendMessage",{"text":message,"userID":userStore.user?.userId},{headers: {"Content-Type":"application/x-www-form-urlencoded"}})
 }
 </script>

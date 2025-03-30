@@ -1,102 +1,10 @@
 package models
 
 import (
+	"fmt"
+
 	_ "github.com/go-sql-driver/mysql" // MySQL 驅動
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
-
-var db *gorm.DB
-
-func init() {
-	db, _ = SetupDatabase()
-}
-
-func SetupDatabase() (*gorm.DB, error) {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/bots?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	db = db.Debug()
-	return db, err
-}
-
-type Commodity struct {
-	CommodityID             uint                      `gorm:"column:commodity_id;primaryKey;autoIncrement"`
-	CommodityName           string                    `gorm:"column:commodity_name"`
-	SpecificationTypes      []SpecificationType       `gorm:"foreignKey:CommodityID;references:CommodityID"`
-	CommoditySpecifications []CommoditySpecifications `gorm:"foreignKey:CommodityID;references:CommodityID"` // 添加關聯
-}
-
-type SpecificationType struct {
-	SpecTypeId          uint                  `gorm:"column:spec_type_id;primaryKey;autoIncrement"`
-	CommodityID         uint                  `gorm:"column:commodity_id"`
-	SpecTypeName        string                `gorm:"column:spec_type_name;size:50"`
-	Commodity           Commodity             `gorm:"foreignKey:CommodityID;references:CommodityID"`
-	SpecificationValues []SpecificationValues `gorm:"foreignKey:SpecTypeId;references:SpecTypeId"`
-}
-
-type SpecificationValues struct {
-	SpecValueId       uint              `gorm:"column:spec_value_id;primaryKey;autoIncrement"`
-	SpecTypeId        uint              `gorm:"column:spec_type_id"`
-	SpecificationType SpecificationType `gorm:"foreignKey:SpecTypeId;references:SpecTypeId"`
-	SpecValue         string            `gorm:"column:spec_value"`
-}
-
-type CommoditySpecifications struct {
-	CommoditySpecificationsID uint                `gorm:"column:commodity_spec_id;primaryKey;autoIncrement"`
-	CommodityID               uint                `gorm:"column:commodity_id"`
-	Commodity                 Commodity           `gorm:"foreignKey:CommodityID;references:CommodityID"`
-	SpecValue1ID              uint                `gorm:"column:spec_value_1_id;"`
-	SpecValue1                SpecificationValues `gorm:"foreignKey:SpecValue1ID;references:SpecValueId"`
-	SpecValue2ID              *uint               `gorm:"column:spec_value_2_id;"`
-	SpecValue2                SpecificationValues `gorm:"foreignKey:SpecValue2ID;references:SpecValueId"`
-	Stock                     uint
-	Price                     float64
-	PictureUrl                *string
-}
-
-// 以上皆為實體類定義
-
-// 定義getAllCommodityAPI輸出格式
-type CommodityListResponse struct {
-	CommodityID   uint   `json:"commodity_id"`
-	CommodityName string `json:"commodity_name"`
-	PriceRange    struct {
-		Min float64 `json:"min"`
-		Max float64 `json:"max"`
-	} `json:"price_range"`
-	TotalStock          uint   `json:"total_stock"`
-	SpecificationsCount int    `json:"specifications_count"`
-	PictureURL          string `json:"picture_url"`
-}
-
-type CommodityDetailResponse struct {
-	CommodityID        uint                    `json:"commodity_id"`
-	CommodityName      string                  `json:"commodity_name"`
-	SpecificationTypes []SpecTypeResponse      `json:"specification_types"`
-	CommoditySpecs     []CommoditySpecResponse `json:"commodity_specifications"`
-}
-
-type SpecTypeResponse struct {
-	SpecTypeID          uint                `json:"spec_type_id"`
-	SpecTypeName        string              `json:"spec_type_name"`
-	SpecificationValues []SpecValueResponse `json:"specification_values"`
-}
-
-type SpecValueResponse struct {
-	SpecValueID uint   `json:"spec_value_id"`
-	SpecValue   string `json:"spec_value"`
-}
-
-type CommoditySpecResponse struct {
-	CommoditySpecID uint    `json:"commodity_spec_id"`
-	SpecValue1ID    uint    `json:"spec_value_1_id"`
-	SpecValue1      string  `json:"spec_value_1"`
-	SpecValue2ID    *uint   `json:"spec_value_2_id,omitempty"`
-	SpecValue2      *string `json:"spec_value_2,omitempty"`
-	Stock           uint    `json:"stock"`
-	Price           float64 `json:"price"`
-	PictureURL      string  `json:"picture_url"`
-}
 
 // 取得所有商品
 func GetAllCommodity() ([]CommodityListResponse, error) {
@@ -159,7 +67,7 @@ func GetCommodityDetail(id uint) (CommodityDetailResponse, error) {
 		First(&commodity, id).Error; err != nil {
 		return CommodityDetailResponse{}, err
 	}
-	// fmt.Println(commodity.SpecificationTypes)
+
 	specTypes := make([]SpecTypeResponse, len(commodity.SpecificationTypes))
 	for i, st := range commodity.SpecificationTypes {
 		values := make([]SpecValueResponse, len(st.SpecificationValues))
@@ -206,4 +114,29 @@ func GetCommodityDetail(id uint) (CommodityDetailResponse, error) {
 	}
 
 	return response, nil
+}
+
+// 保存商品
+func SaveCommodity(CommodityName string, CommodityID *uint) (Commodity, error) {
+	// 創建商品
+	commodity := Commodity{
+		CommodityName: CommodityName,
+	}
+	if CommodityID != nil {
+		commodity.CommodityID = *CommodityID
+	}
+
+	if err := db.Save(&commodity).Error; err != nil {
+		return Commodity{}, fmt.Errorf("failed to create commodity: %v", err)
+	}
+
+	return commodity, nil
+}
+
+// 刪除商品
+func DeleteCommodity(id uint) error {
+	if err := db.Delete(&Commodity{}, id).Error; err != nil {
+		return err
+	}
+	return nil
 }
