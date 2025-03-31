@@ -14,18 +14,17 @@ import (
 // 購買
 func Buy(userID string, commodity_id, commodity_spec_id, num uint) error {
 	// 先扣除數量
-	commodity_spec := models.GetCommoditySpec(commodity_spec_id)
-
-	if _, err := models.UpdateCommoditySpecification(commodity_id, commodity_spec_id, models.UpdateCommoditySpecRequest{
-		Stock:      func(v uint) *uint { return &v }(commodity_spec.Stock - num),
-		Price:      &commodity_spec.Price,
-		PictureURL: commodity_spec.PictureUrl,
-	}); err != nil {
+	sku, err := models.GetCommoditySpecBySkuID(commodity_spec_id)
+	if err != nil {
+		return err
+	}
+	sku.Stock = sku.Stock - num
+	if err := models.SaveSKU(&sku); err != nil {
 		return err
 	}
 
 	// 若成功發送LineMessage
-	message := fmt.Sprintf("您已購買商品: %s, 規格: %s %s, 數量: %d, 總價格為: %.2f", commodity_spec.Commodity.CommodityName, commodity_spec.SpecValue1.SpecValue, commodity_spec.SpecValue2.SpecValue, num, (commodity_spec.Price * float64(num)))
+	message := fmt.Sprintf("您已購買商品: %s, 規格: %s %s, 數量: %d, 總價格為: %.2f", sku.Commodity.CommodityName, sku.SpecValue1.SpecValue, sku.SpecValue2.SpecValue, num, (sku.Price * float64(num)))
 	if err := SendMessageToUser(message, userID); err != nil {
 		return err
 	}

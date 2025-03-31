@@ -11,39 +11,8 @@ import (
 
 // 創建商品規格Handler
 func CreateCommoditySpecTypeHandler(c *gin.Context) {
-	var req models.CreateSpecTypeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	var req models.SpecificationTypeRequest
 
-	commodityID, err := strconv.ParseUint(c.Param("commodity_id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid commodity_id"})
-		return
-	}
-
-	// 從1個規格變兩個，故sku必定是4個
-	if len(req.SKU) != 4 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sku number"})
-		return
-	}
-
-	// 處理新增規則
-	err = service.SaveCommoditySpecTypeService(uint(commodityID), req.SpecTypeName, req.SpecValues)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	service.CreateSKUAUTOServie(uint(commodityID), req.SKU)
-
-	c.JSON(http.StatusCreated, "")
-}
-
-// 修改多個商品規格Handler
-func UpdateCommoditySpecTypesHandler(c *gin.Context) {
-	var req []models.CreateSpecTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -55,18 +24,33 @@ func UpdateCommoditySpecTypesHandler(c *gin.Context) {
 		return
 	}
 
-	err = service.UpdateCommoditySpecTypeService(uint(CommodityID), req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	specValue := []models.SpecificationValues{}
+
+	for _, value := range req.SpecTypeValue {
+		temp := models.SpecificationValues{
+			SpecValue: value,
+		}
+
+		specValue = append(specValue, temp)
+	}
+
+	temp := models.SpecificationType{
+		CommodityID:         uint(CommodityID),
+		SpecTypeName:        req.SpecTypeName,
+		SpecificationValues: specValue,
+	}
+
+	if err := service.SaveCommoditySpecTypeService(&temp); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, "")
+	c.JSON(http.StatusOK, temp)
 }
 
 // 修改商品規格Handler
 func UpdateCommoditySpecTypeHandler(c *gin.Context) {
-	var req models.CreateSpecTypeRequest
+	var req models.SpecificationTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -80,20 +64,35 @@ func UpdateCommoditySpecTypeHandler(c *gin.Context) {
 
 	SpecTypeId, err := strconv.ParseUint(c.Param("spec_type_id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid commodity_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid spec_type_id"})
 		return
 	}
 
-	specTypeIDValue := uint(SpecTypeId)
-	req.SpecTypeID = &specTypeIDValue
+	specValue := []models.SpecificationValues{}
 
-	err = service.UpdateCommoditySpecTypeService(uint(CommodityID), []models.CreateSpecTypeRequest{req})
+	for _, value := range req.SpecTypeValue {
+		temp := models.SpecificationValues{
+			SpecTypeId: uint(SpecTypeId),
+			SpecValue:  value,
+		}
+
+		specValue = append(specValue, temp)
+	}
+
+	temp := models.SpecificationType{
+		SpecTypeId:          uint(SpecTypeId),
+		CommodityID:         uint(CommodityID),
+		SpecTypeName:        req.SpecTypeName,
+		SpecificationValues: specValue,
+	}
+
+	err = service.UpdateCommoditySpecTypeService(&temp)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid commodity_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 
-	c.JSON(http.StatusCreated, "")
+	c.JSON(http.StatusOK, temp)
 }
 
 // 刪除商品規格Handler
@@ -120,25 +119,8 @@ func DeleteCommoditySpecTypeHandler(c *gin.Context) {
 
 // 創建商品SKU Handler
 func CreateSKUHandler(c *gin.Context) {
-	var sku models.CreateSKURequest
-	if err := c.ShouldBindJSON(&sku); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := service.CreateSKUService(sku.CommodityID, sku.SpecValue1ID, sku.SpecValue2ID, sku.Stock, sku.Price, sku.PictureURL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-
-	}
-
-	c.JSON(http.StatusCreated, sku)
-}
-
-func UpdateSKUSHandler(c *gin.Context) {
-	var skus []models.CreateSKURequest
-
-	if err := c.ShouldBindJSON(&skus); err != nil {
+	var req models.SKURequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -149,19 +131,28 @@ func UpdateSKUSHandler(c *gin.Context) {
 		return
 	}
 
-	if err := service.UpdatewSKUSService(uint(commodityID), skus); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-
+	sku := models.CommoditySpecifications{
+		CommodityID:  uint(commodityID),
+		SpecValue1ID: req.SpecValue1ID,
+		SpecValue2ID: req.SpecValue2ID,
+		Stock:        req.Stock,
+		Price:        req.Price,
+		PictureUrl:   &req.PictureURL,
 	}
 
-	c.JSON(http.StatusCreated, skus)
+	if err := models.SaveSKU(&sku); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	c.JSON(http.StatusCreated, sku)
 }
 
+// 更新單個SKU Handler
 func UpdateSKUHandler(c *gin.Context) {
-	var sku models.CreateSKURequest
+	var req models.SKURequest
 
-	if err := c.ShouldBindJSON(&sku); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -172,7 +163,23 @@ func UpdateSKUHandler(c *gin.Context) {
 		return
 	}
 
-	if err := service.UpdatewSKUService(sku.CommodityID, sku.SpecValue1ID, uint(sku_id), sku.SpecValue2ID, sku.Stock, sku.Price, sku.PictureURL); err != nil {
+	commodityID, err := strconv.ParseUint(c.Param("commodity_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid commodity_id"})
+		return
+	}
+
+	sku := models.CommoditySpecifications{
+		CommoditySpecificationsID: uint(sku_id),
+		CommodityID:               uint(commodityID),
+		SpecValue1ID:              req.SpecValue1ID,
+		SpecValue2ID:              req.SpecValue2ID,
+		Stock:                     req.Stock,
+		Price:                     req.Price,
+		PictureUrl:                &req.PictureURL,
+	}
+
+	if err := service.UpdatewSKUService(&sku); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 

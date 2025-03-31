@@ -1,15 +1,12 @@
 <template>
     <div class="navbar bg-base-100 shadow-sm">
         <div class="flex-1">
-            <a href="bots.ts" class="btn btn-ghost text-xl">bots</a>
+            <a href="/" class="btn btn-ghost text-xl">bots</a>
         </div>
         <div class="flex-none">
             <ul class="menu menu-horizontal px-1">
                 <li>
                     <RouterLink to="/">商品列表</RouterLink>
-                </li>
-                <li>
-                    <RouterLink to="/">規格管理</RouterLink>
                 </li>
                 <li>
                     <details>

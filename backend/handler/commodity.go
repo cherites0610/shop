@@ -46,25 +46,54 @@ func BuyHandler(c *gin.Context) {
 
 // 創建商品Handler
 func CreateCommodityHandler(c *gin.Context) {
-	var req models.CreateCommodityRequest
+	var req models.CommodtiyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := service.SaveCommoditySerive(req.CommodityName, nil, req.SpecificationTypes, req.SKU)
+	specTypes := make([]models.SpecificationType, 0, len(req.SpecificationTypeRequest))
+	for _, item := range req.SpecificationTypeRequest {
+		specValues := make([]models.SpecificationValues, 0, len(item.SpecTypeValue))
+		for _, value := range item.SpecTypeValue {
+			specValues = append(specValues, models.SpecificationValues{SpecValue: value})
+		}
 
-	if err != nil {
+		specTypes = append(specTypes, models.SpecificationType{
+			SpecTypeName:        item.SpecTypeName,
+			SpecificationValues: specValues,
+		})
+	}
+
+	skus := make([]models.CommoditySpecifications, 0, len(req.SKUTypeRequest))
+	for _, item := range req.SKUTypeRequest {
+		sku := models.CommoditySpecifications{
+			Stock:      item.Stock,
+			Price:      item.Price,
+			PictureUrl: &item.PictureURL,
+		}
+		skus = append(skus, sku)
+	}
+
+	commodity := models.Commodity{
+		CommodityName:      req.CommodityName,
+		SpecificationTypes: specTypes,
+	}
+
+	if err := service.CreateCommodityService(&commodity, skus); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, "")
+
+	c.JSON(200, commodity)
 }
 
-// 更改商品Handler
+// 更改商品名稱andler
 func UpdateCommodityHandler(c *gin.Context) {
-	type UpdateCommodityRequest struct {
-		CommodityName string `json:"commodity_name"`
+	var req models.CommodtiyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
 	commodityID, err := strconv.ParseUint(c.Param("commodity_id"), 10, 32)
@@ -73,20 +102,16 @@ func UpdateCommodityHandler(c *gin.Context) {
 		return
 	}
 
-	var req UpdateCommodityRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
+	temp := models.Commodity{
+		CommodityID:   uint(commodityID),
+		CommodityName: req.CommodityName,
 	}
 
-	commodityIDPtr := uint(commodityID)
-	err = service.SaveCommoditySerive(req.CommodityName, &commodityIDPtr, []models.CreateSpecTypeRequest{}, []models.CreateSpecTypeSKURequest{})
-
-	if err != nil {
+	if err := models.SaveCommodity(&temp); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, "")
+	c.JSON(200, temp)
 }
 
 // 刪除商品Handler
@@ -103,4 +128,55 @@ func DeleteCommodityHandler(c *gin.Context) {
 	}
 
 	c.JSON(204, "")
+}
+
+func PutCommodityHandler(c *gin.Context) {
+	var req models.CommodityDetailResponse
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	SpecificationTypes := []models.SpecificationType{}
+	for _, spec_type := range req.SpecificationTypes {
+		spec_values := []models.SpecificationValues{}
+		for _, spec_value := range spec_type.SpecificationValues {
+			spec_values = append(spec_values, models.SpecificationValues{
+				SpecValueId: spec_value.SpecValueID,
+				SpecValue:   spec_value.SpecValue,
+			})
+		}
+
+		SpecificationTypes = append(SpecificationTypes, models.SpecificationType{
+			CommodityID:         req.CommodityID,
+			SpecTypeId:          spec_type.SpecTypeID,
+			SpecTypeName:        spec_type.SpecTypeName,
+			SpecificationValues: spec_values,
+		})
+	}
+
+	skus := []models.CommoditySpecifications{}
+	for _, req_sku := range req.CommoditySpecs {
+		skus = append(skus, models.CommoditySpecifications{
+			CommoditySpecificationsID: req_sku.CommoditySpecID,
+			CommodityID:               req.CommodityID,
+			SpecValue1ID:              req_sku.SpecValue1ID,
+			SpecValue2ID:              req_sku.SpecValue2ID,
+			Stock:                     req_sku.Stock,
+			Price:                     req_sku.Price,
+			PictureUrl:                &req_sku.PictureURL,
+		})
+	}
+
+	commodity := models.Commodity{
+		CommodityID:             req.CommodityID,
+		CommodityName:           req.CommodityName,
+		SpecificationTypes:      SpecificationTypes,
+		CommoditySpecifications: skus,
+	}
+
+	if err := service.PutCommodityService(&commodity); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, commodity)
 }

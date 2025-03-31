@@ -13,6 +13,7 @@ func CommodityRoutes(router *gin.Engine) {
 		commodityRoutes.GET("", handler.GetCommoditiesHandler)
 		commodityRoutes.GET("/:commodity_id", handler.GetCommoditieyByIDHandler)
 		commodityRoutes.POST("", handler.CreateCommodityHandler)
+		commodityRoutes.PUT("", handler.PutCommodityHandler)
 		commodityRoutes.PUT("/:commodity_id", handler.UpdateCommodityHandler)
 		commodityRoutes.DELETE("/:commodity_id", handler.DeleteCommodityHandler)
 
@@ -23,7 +24,6 @@ func CommodityRoutes(router *gin.Engine) {
 		specificationRoutes := commodityRoutes.Group("/:commodity_id/specification-types")
 		{
 			specificationRoutes.POST("", handler.CreateCommoditySpecTypeHandler)                 // 新增規格
-			specificationRoutes.PUT("", handler.UpdateCommoditySpecTypesHandler)                 // 修改規格
 			specificationRoutes.PUT("/:spec_type_id", handler.UpdateCommoditySpecTypeHandler)    // 修改規格
 			specificationRoutes.DELETE("/:spec_type_id", handler.DeleteCommoditySpecTypeHandler) // 刪除規格
 		}
@@ -32,7 +32,6 @@ func CommodityRoutes(router *gin.Engine) {
 		{
 			skuRoutes.POST("", handler.CreateSKUHandler)
 			skuRoutes.PUT("/:sku_id", handler.UpdateSKUHandler)
-			skuRoutes.PUT("", handler.UpdateSKUSHandler)
 		}
 	}
 }

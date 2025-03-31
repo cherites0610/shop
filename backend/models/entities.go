@@ -76,45 +76,28 @@ type CommoditySpecResponse struct {
 	PictureURL      string  `json:"picture_url"`
 }
 
-type UpdateCommoditySpecRequest struct {
-	Stock      *uint    `json:"stock,omitempty"`
-	Price      *float64 `json:"price,omitempty"`
-	PictureURL *string  `json:"picture_url,omitempty"`
-}
-
-type CreateSKURequest struct {
-	CommodityID               uint    `json:"commodity_id" binding:"required"`
-	CommoditySpecificationsID *uint   `json:"commodity_spec_id"`
-	SpecValue1ID              uint    `json:"spec_value_1_id"`
-	SpecValue2ID              *uint   `json:"spec_value_2_id,omitempty"`
-	Stock                     uint    `json:"stock" binding:"required"`
-	Price                     float64 `json:"price" binding:"required"`
-	PictureURL                string  `json:"picture_url" binding:"required"`
-}
-
-type CreateCommodityRequest struct {
-	CommodityName      string                     `json:"commodity_name"`
-	SpecificationTypes []CreateSpecTypeRequest    `json:"specification_types,omitempty"`
-	SKU                []CreateSpecTypeSKURequest `json:"sku"`
-}
-
-type CreateSpecTypeRequest struct {
-	SpecTypeID   *uint                      `json:"spec_type_id"`
-	SpecTypeName string                     `json:"spec_type_name" binding:"required"`
-	SpecValues   []string                   `json:"spec_type_values" binding:"required"`
-	SKU          []CreateSpecTypeSKURequest `json:"sku"`
-}
-
-type CreateSpecTypeSKURequest struct {
-	CommodityID uint    `json:"commodity_id" binding:"required"`
-	Stock       uint    `json:"stock" binding:"required"`
-	Price       float64 `json:"price" binding:"required"`
-	PictureURL  string  `json:"picture_url" binding:"required"`
-}
-
 type BuyRequest struct {
 	CommodityID uint   `json:"commodity_id" binding:"required"`
 	SpecTypeID  uint   `json:"spec_type_id" binding:"required"`
 	UserID      string `json:"user_id" binding:"required"`
 	Num         uint   `json:"num" binding:"required"`
+}
+
+type SKURequest struct {
+	SpecValue1ID uint    `json:"spec_value_1_id"`
+	SpecValue2ID *uint   `json:"spec_value_2_id"`
+	Stock        uint    `json:"stock"`
+	Price        float64 `json:"price"`
+	PictureURL   string  `json:"picture_url"`
+}
+
+type SpecificationTypeRequest struct {
+	SpecTypeName  string   `json:"spec_type_name"`
+	SpecTypeValue []string `json:"spec_type_values"`
+}
+
+type CommodtiyRequest struct {
+	CommodityName            string                     `json:"commodity_name"`
+	SpecificationTypeRequest []SpecificationTypeRequest `json:"spec_types"`
+	SKUTypeRequest           []SKURequest               `json:"skus"`
 }

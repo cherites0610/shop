@@ -109,7 +109,8 @@ const buyHandler = async () => {
     "num": num.value
   })
   alert("購買成功")
-  await getCommodity()
+  await getCommodity();
+  await commodityStore.getCommodities();
 
 }
 </script>

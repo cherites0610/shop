@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	_ "github.com/go-sql-driver/mysql" // MySQL 驅動
 )
 
@@ -116,21 +114,23 @@ func GetCommodityDetail(id uint) (CommodityDetailResponse, error) {
 	return response, nil
 }
 
+func GetCommodity(Commodity *Commodity) error {
+	if err := db.Preload("SpecificationTypes.SpecificationValues").
+		Preload("CommoditySpecifications.SpecValue1").
+		Preload("CommoditySpecifications.SpecValue2").
+		First(Commodity).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // 保存商品
-func SaveCommodity(CommodityName string, CommodityID *uint) (Commodity, error) {
-	// 創建商品
-	commodity := Commodity{
-		CommodityName: CommodityName,
-	}
-	if CommodityID != nil {
-		commodity.CommodityID = *CommodityID
-	}
-
+func SaveCommodity(commodity *Commodity) error {
 	if err := db.Save(&commodity).Error; err != nil {
-		return Commodity{}, fmt.Errorf("failed to create commodity: %v", err)
+		return err
 	}
 
-	return commodity, nil
+	return nil
 }
 
 // 刪除商品

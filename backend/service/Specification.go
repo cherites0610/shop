@@ -50,9 +50,9 @@ func cartesianProduct(values [][]int) [][]int {
 }
 
 // 新增規格
-func SaveCommoditySpecTypeService(CommodityID uint, SpecName string, SpecValue []string) error {
+func SaveCommoditySpecTypeService(SpecType *models.SpecificationType) error {
 	// 檢查商品是否存在
-	commodity, err := models.GetCommodityDetail(CommodityID)
+	commodity, err := models.GetCommodityDetail(SpecType.CommodityID)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,8 @@ func SaveCommoditySpecTypeService(CommodityID uint, SpecName string, SpecValue [
 	}
 
 	// 新增規格
-	if err := models.CreateSpecificationType(CommodityID, nil, SpecName, SpecValue); err != nil {
+	// 先保存SpecType資訊
+	if err := models.SaveSpecType(SpecType); err != nil {
 		return err
 	}
 
@@ -72,106 +73,63 @@ func SaveCommoditySpecTypeService(CommodityID uint, SpecName string, SpecValue [
 }
 
 // 修改規格
-func UpdateCommoditySpecTypeService(CommodityID uint, req []models.CreateSpecTypeRequest) error {
-	// 取得舊有的商品資料
-	commodity, err := models.GetCommodityDetail(CommodityID)
+func UpdateCommoditySpecTypeService(SpecType *models.SpecificationType) error {
+	// 取得舊有的 SpecificationType 資料
+	oldSpecType, err := models.GetSpecificationTypeBySpecTypeID(SpecType.SpecTypeId)
 	if err != nil {
+		return err // 如果找不到舊資料，返回錯誤
+	}
+
+	// 更新 SpecificationType 的基本資訊（例如 SpecTypeName）
+	oldSpecType.SpecTypeName = SpecType.SpecTypeName
+	if err := models.SaveSpecType(&oldSpecType); err != nil {
 		return err
 	}
 
-	// 取得舊有每個的ValueID
-	for _, reqSpecType := range req {
-		if reqSpecType.SpecTypeID != nil {
-			// 修改
+	// 比較舊的 SpecificationValues 和新的 SpecificationValues
+	oldValues := oldSpecType.SpecificationValues
+	newValues := SpecType.SpecificationValues
 
-			// 尋找舊有valueID
-			oldSpecValueIDs := []uint{}
-			for _, commoditySpecType := range commodity.SpecificationTypes {
-				if *reqSpecType.SpecTypeID == commoditySpecType.SpecTypeID {
-					for _, item := range commoditySpecType.SpecificationValues {
-						oldSpecValueIDs = append(oldSpecValueIDs, item.SpecValueID)
-					}
-				}
-			}
-			fmt.Println("oldSpecValueIDs", oldSpecValueIDs)
-			// 更改每個SpecValue
-			index := 0
-			for _, specValue := range reqSpecType.SpecValues {
-				fmt.Println(oldSpecValueIDs[index])
-				models.UpdateSpecValue(oldSpecValueIDs[index], *reqSpecType.SpecTypeID, specValue)
-				index++
-			}
-
-			if len(oldSpecValueIDs) > len(reqSpecType.SpecValues) {
-				models.DeleteSpecValue(oldSpecValueIDs[1])
-			}
-
-			// 更改SpecTypeName
-			models.SaveSpecificationType(commodity.CommodityID, *reqSpecType.SpecTypeID, reqSpecType.SpecTypeName)
-		} else {
-			// 新增
-
-			// 逐步替換舊規格
-			currentSpecs := len(commodity.SpecificationTypes)
-			if currentSpecs == 2 {
-				// 先刪除一個舊規格
-				for _, commoditySpecType := range commodity.SpecificationTypes {
-					isLive := false
-					for _, reqSpecTypeInner := range req {
-						if reqSpecTypeInner.SpecTypeID != nil && *reqSpecTypeInner.SpecTypeID == commoditySpecType.SpecTypeID {
-							isLive = true
-							break
-						}
-					}
-					if !isLive {
-						fmt.Println("Deleting SpecTypeID (step 1):", commoditySpecType.SpecTypeID)
-						if err := DeleteCommoditySpecTypeService(CommodityID, commoditySpecType.SpecTypeID); err != nil {
-							return err
-						}
-						break // 只刪除一個
-					}
-				}
-			}
-
-			// 新增新規格
-			if err := SaveCommoditySpecTypeService(CommodityID, reqSpecType.SpecTypeName, reqSpecType.SpecValues); err != nil {
+	// 情況 1：舊的比新的多
+	if len(oldValues) > len(newValues) {
+		// 保留並更新與新值對應的部分
+		for i := 0; i < len(newValues); i++ {
+			oldValues[i].SpecValue = newValues[i].SpecValue
+			if err := models.SaveSpecValue(oldValues[i]); err != nil {
 				return err
 			}
-
-			// 刪除剩餘的舊規格（如果有）
-			for _, commoditySpecType := range commodity.SpecificationTypes {
-				isLive := false
-				for _, reqSpecTypeInner := range req {
-					if reqSpecTypeInner.SpecTypeID != nil && *reqSpecTypeInner.SpecTypeID == commoditySpecType.SpecTypeID {
-						isLive = true
-						break
-					}
-				}
-				if !isLive {
-					fmt.Println("Deleting SpecTypeID (step 2):", commoditySpecType.SpecTypeID)
-					if err := DeleteCommoditySpecTypeService(CommodityID, commoditySpecType.SpecTypeID); err != nil {
-						fmt.Println("Delete failed (ignored):", err) // 可選擇忽略，因為新增已成功
-					}
-				}
+		}
+		// 刪除多餘的舊值
+		for i := len(newValues); i < len(oldValues); i++ {
+			if err := models.DeleteSpecValue(oldValues[i].SpecValueId); err != nil {
+				return err
 			}
 		}
 	}
+
+	// 情況 2：新的比舊的多或相等
+	if len(oldValues) <= len(newValues) {
+		// 更新舊有的值
+		for i := 0; i < len(oldValues); i++ {
+			oldValues[i].SpecValue = newValues[i].SpecValue
+			if err := models.SaveSpecValue(oldValues[i]); err != nil {
+				return err
+			}
+		}
+		// 新增額外的值
+		for i := len(oldValues); i < len(newValues); i++ {
+			newValues[i].SpecTypeId = SpecType.SpecTypeId // 設置外鍵
+			if err := models.SaveSpecValue(newValues[i]); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
-// 刪除規格（一定要保留一個）
+// 刪除規格
 func DeleteCommoditySpecTypeService(CommodityID uint, SpecTypeID uint) error {
-	// 檢查商品是否存在
-	commodity, err := models.GetCommodityDetail(CommodityID)
-	if err != nil {
-		return err
-	}
-
-	// 如果已有兩個規格，不予新增
-	if len(commodity.SpecificationTypes) == 1 {
-		return errors.New("規格數量不能為0")
-	}
-
 	// 刪除規格
 	if err := models.DeleteSpecificationType(SpecTypeID); err != nil {
 		return err
@@ -180,39 +138,9 @@ func DeleteCommoditySpecTypeService(CommodityID uint, SpecTypeID uint) error {
 	return nil
 }
 
-func CreateSKUAUTOServie(CommodityID uint, SKUS []models.CreateSpecTypeSKURequest) error {
-	// 取得所有組合確保sku相同數量
-	combinations, err := GetSpecValueIDCombinations(CommodityID)
-	if err != nil {
-		return err
-	}
-
-	// 新增sku
-	for i, combo := range combinations {
-		specValue1ID := combo[0]
-		var specValue2ID *uint
-		if len(combo) > 1 {
-			value := uint(combo[1])
-			specValue2ID = &value
-		}
-
-		CreateSKUService(CommodityID, uint(specValue1ID), specValue2ID, SKUS[i].Stock, SKUS[i].Price, SKUS[i].PictureURL)
-	}
-	return nil
-}
-
 // 新增SKU
-func CreateSKUService(CommodityID, SpecValue1ID uint, SpecValue2ID *uint, Stock uint, Price float64, PictureURL string) error {
-	SKU := models.CommoditySpecifications{
-		CommodityID:  CommodityID,
-		SpecValue1ID: SpecValue1ID,
-		SpecValue2ID: SpecValue2ID,
-		Stock:        Stock,
-		Price:        Price,
-		PictureUrl:   &PictureURL,
-	}
-
-	if err := models.CreateSKU(&SKU); err != nil {
+func CreateSKUService(sku *models.CommoditySpecifications) error {
+	if err := models.SaveSKU(sku); err != nil {
 		return err
 	}
 
@@ -220,59 +148,8 @@ func CreateSKUService(CommodityID, SpecValue1ID uint, SpecValue2ID *uint, Stock 
 }
 
 // 更改SKU
-func UpdatewSKUSService(commodityID uint, skus []models.CreateSKURequest) error {
-	// 先找資料庫中舊的
-	oldSKUs, _ := models.GetCommoditySpecByCommodityID(commodityID)
-
-	// 進行對比，不存在於新的的全部刪除
-	for _, oldSKU := range oldSKUs {
-		isLive := false
-		for _, newSKU := range skus {
-			if oldSKU.CommoditySpecificationsID == *newSKU.CommoditySpecificationsID {
-				isLive = true
-				break
-			}
-		}
-
-		if !isLive {
-			fmt.Printf("已經刪除sku ID:%d", oldSKU.CommoditySpecificationsID)
-			models.DeleteSKU(commodityID, oldSKU.CommoditySpecificationsID)
-		}
-
-	}
-	// 遍歷skus
-	for _, sku := range skus {
-		if sku.CommoditySpecificationsID != nil {
-			// 有id的話是更改
-			fmt.Print("UpdateSKU:")
-			fmt.Println(sku)
-		} else {
-			// 沒有id的話是新建
-			fmt.Print("NewSKU:")
-			fmt.Println(sku)
-		}
-	}
-
-	//
-
-	return nil
-}
-
-// 更改SKU
-func UpdatewSKUService(CommodityID, SpecValue1ID, CommoditySpecID uint, SpecValue2ID *uint, Stock uint, Price float64, PictureURL string) error {
-	SKU := models.CommoditySpecifications{
-		CommoditySpecificationsID: CommoditySpecID,
-		CommodityID:               CommodityID,
-		SpecValue1ID:              SpecValue1ID,
-		SpecValue2ID:              SpecValue2ID,
-		Stock:                     Stock,
-		Price:                     Price,
-		PictureUrl:                &PictureURL,
-	}
-
-	// 如果兩個value其中一個 其中依舊存在 先刪除
-
-	if err := models.SaveSKU(&SKU); err != nil {
+func UpdatewSKUService(sku *models.CommoditySpecifications) error {
+	if err := models.SaveSKU(sku); err != nil {
 		return err
 	}
 
